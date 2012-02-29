@@ -1,0 +1,194 @@
+/* RESETS */
+* {margin:0; padding:0;}
+img {border:0}
+header, footer, article, section, nav, menu, hgroup, figure {display: block;}
+
+/* STYLE */
+body {
+	background-color: black;
+    color: white;
+    font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
+    font-size: 12px;
+}
+
+h1 {font-size: 28px;}
+h2 {font-size: 20px;}
+h3 {font-size: 16px;}
+h4 {font-size: 14px;}
+h5 {font-size: 13px; letter-spacing: 1px; text-transform: uppercase;}
+
+h1,h2,h3,h4,h5 {
+    font-family:"Helvetica Neue", Helvetica, Arial, sans-serif;
+    margin: 2px;
+    margin-top: 0px;
+}
+
+a { text-decoration: none; }
+a:link { color: #10448B; }
+a:visited { color: #000084; }
+a:hover { text-decoration: underline; }
+a:active { color: #FF0000; }
+
+#container {
+	margin: 0px auto;
+	overflow: hidden;
+	padding-top: 30px;
+	width: 960px;
+}
+
+#client {
+	background-color: lightGrey;
+	color: black;
+	min-height: 400px;
+	position: relative;
+	width: 100%;
+}
+
+#cur_room {
+	background-color: white;
+	float: left;
+	min-height: 390px;
+	overflow: hidden;
+	padding: 0 0 8px 0;
+	position: relative;
+	width: 748px;
+}
+
+#topic {
+    background-image: linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+    background-image: -o-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+    background-image: -moz-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+    background-image: -webkit-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+    background-image: -ms-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+	border-bottom: 1px solid #DDD;
+	box-sizing: border-box;
+    color: rgba(16,32,48,0.75);
+    font: 12px/32px "Helvetica Neue", Helvetica, Arial, sans-serif;
+    height:32px;
+    overflow:hidden;
+	padding: 0 8px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+    width: 100%;
+}
+#topic span { display: none; }
+
+#channelLog {
+	font: 11px/16px "Lucida Grande", Verdana, Helvetica, Arial, sans-serif;
+	height: 376px;
+	margin: 1px 0;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	width: 100%;
+}
+#channelLog dl { display:block; }
+#channelLog dt { display: block; padding: 0 4px; }
+#channelLog a, .topic a { color: #00A; text-decoration: underline; }
+.ircTime {
+	color: gray;
+	float: right;
+	font-size: 9px;
+	padding-left: 4px;
+}
+.ircSender { color: gray; font-weight: bold; }
+.ircNick { color: gray; }
+.ircSelf { color: red; }
+.ircLine > .ircSender::after { content: ":"; }
+.ircAction > .ircSender::before { content: "• "; }
+.ircNotice > .ircSender::before { content: "—"; }
+.ircNotice > .ircSender::after { content: ":"; }
+.ircEvent { color: gray; text-align: center; }
+dt.h { background: #E6E6E6; }
+#ircInput input {
+	border:0;
+	border-radius: 0;
+	border-top:1px solid #BBB;
+	box-sizing: border-box;
+	height:18px;
+	outline: none;
+	padding:0 8px;
+	width:100%;
+}
+
+#room_list {
+	float: left;
+	font-size: 13px;
+	height: 433px;
+	overflow-x: hidden;
+	overflow-y: scroll;
+	padding: 0 0 0 1px;
+	width: 211px;
+}
+#room_list section:nth-child(n+2) { border-top: 1px solid #C0C0C0; }
+#room_list header {
+	display: table;
+	height: 32px;
+	line-height: 32px;
+	width:100%;
+}
+#room_list .current header {
+	background-image: linear-gradient(bottom, rgb(232,232,232) 20%, rgb(220,220,220) 80%);
+	background-image: -o-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+	background-image: -moz-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+	background-image: -webkit-linear-gradient(top, rgb(172,172,192) 20%, rgb(160,164,192) 80%);
+	background-image: -ms-linear-gradient(bottom, rgb(255,255,255) 20%, rgb(220,220,220) 80%);
+	color: #EEE;
+}
+#room_list header > div { display: table-row; }
+#room_list header > div a {
+	display: table-cell;
+	font-size: 9px;
+	line-height: 32px;
+	text-align: center;
+	text-decoration: none;
+	vertical-align: top;
+	width: 20px;
+}
+#room_list header > div > span {
+	cursor: default;
+	display:table-cell;
+	padding-right: 9px;
+}
+#room_list header > div > span div {
+	box-sizing: border-box;
+	display: inline-block;
+	overflow: hidden;
+	padding-left: 4px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#room_list header > div > span.pm { padding-left: 24px; }
+
+span.unread {
+	background: rgba(0,0,0,0.2);
+	border-radius: 10px;
+	box-shadow:rgba(255,255,255,0.5) 0px 1px 0, rgba(0,0,0,0.5) 0 -1px 0;
+	color: #222;
+	float:right;
+	font-size: 11px;
+	height: 18px;
+	line-height: 16px;
+	margin: 7px 0 0 4px;
+	padding: 0 6px;
+	text-shadow:-1px -1px 0px rgba(255,255,255,0.25);
+}
+#room_list ul {
+	display: none;
+	font-size: 12px;
+	line-height: 20px;
+	list-style-type: none;
+	margin: 4px 0;
+	padding-left: 20px;
+}
+
+#room_list li {
+	background: url('images/person.png') no-repeat left center;
+	padding-left: 22px;
+}
+#room_list li.op {background-image: url('images/op.png');}
+#room_list li.halfop {background-image: url('images/half-op.png');}
+#room_list li.voice {background-image: url('images/voice.png');}
+
+.clear {
+	clear: both;
+}
