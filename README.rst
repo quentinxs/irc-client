@@ -1,4 +1,4 @@
-``irc-client`` is a web application written using the NodeJS_ IRC client library, ``node-irc``_.
+``irc-client`` is a web application written using the NodeJS_ IRC client library, `node-irc`_.
 
 Set-up
 -------
@@ -24,4 +24,4 @@ And configure ``client.html`` using the ``irc`` variable::
 Set the nick you want to use here.
 
 .. _NodeJS: http://nodejs.org/
-.. _``node-irc``: https://github.com/qsheets/node-irc/
+.. _`node-irc`: https://github.com/qsheets/node-irc/
