@@ -48,47 +48,12 @@ io.sockets.on('connection', function (socket) {
 	client.addListener('notice', function(from, to, message) {
 		if (from) socket.emit('notice', {"from": from, "to": to, "msg": message});
 	});
+	
+	client.addListener('action', function(from, to, message) {
+		socket.emit('message', {"from": from, "to": to, "action": true, "msg": message});
+	});
 	client.addListener('message', function (from, to, message) {
-		var action = false,
-			ctcprequest = false;
-		if (match = message.match(/^\u0001ACTION (.*)\u0001/)) {
-			message = match[1];
-			action = true;
-		} else if (match = message.match(/^\u0001([A-Z]+|ERRMSG .*)\u0001/)) {
-			var request = match[1],
-				query = '';
-			ctcprequest = true;
-			if (match = request.match(/ERRMSG (.*)/)) {
-				request = 'ERRMSG';
-				query = match[1];
-			}
-			switch (request) {
-				case 'ERRMSG':
-					client.send('NOTICE',from,'\u0001ERRMSG '+query+' :No error has occurred\u0001');
-				case 'TIME':
-					var now = new Date(),
-						year = now.getFullYear(),
-						month = String("00" + (now.getMonth()/1+1)).slice(2),
-						day = String("00" + now.getDate()).slice(2),
-						hour = String("00" + now.getHours()).slice(2),
-						minute = String("00" + now.getMinutes()).slice(2),
-						second = String("00" + now.getSeconds()).slice(2),
-						offset = -now.getTimezoneOffset()/60*100,
-						datetime = year+'-'+month+'-'+day+' '+hour+':'+minute+':'+second+' '+offset;
-					client.send('NOTICE',from,'\u0001TIME :'+datetime+'\u0001'); //format \001TIME :human-readable-datetime\001
-					break;
-				case 'USERINFO':
-					client.send('NOTICE',from,'\u0001USERINFO :Web User\u0001'); //format \001USERINFO :client-set-string\001
-					break;
-				case 'VERSION':
-					client.send('NOTICE',from,'\u0001VERSION node-irc 0.8.7 Linux\u0001'); //format \001VERSION client:version:environment\001
-					break;
-				default:
-					// for CLIENTINFO, FINGER, PING, SOURCE, and unknown requests
-					client.send('NOTICE',from,'\u0001ERRMSG '+request+' :Query is unknown\u0001');
-			}
-		}
-		if (!ctcprequest) socket.emit('message', {"from": from, "to": to, "action": action, "msg": message});
+		socket.emit('message', {"from": from, "to": to, "action": false, "msg": message});
 	});
 	client.addListener('join', function(channel, who) {
 		socket.emit('event', {"eventType": 'join', "channel": channel, "who": who});
@@ -147,19 +112,23 @@ io.sockets.on('connection', function (socket) {
 				case 'DEVOICE':
 					break;
 				case 'JOIN':
-					match = args.replace(/([^,])\s/,RegExp.$1+"\t").split(/\t/);
-					channels = [];
-					chanlist = match[0].replace(', ',',').split(',');
-					console.log(chanlist);
-					for (var i = 0; i < chanlist.length; i++) {
-						if(chanlist[i].match(/([#&+!].*)/))
-							channels.push(chanlist[i]);
-					}
-					if (match.length > 1) {
-						keys = match[1].replace(', ',',');
-						client.send('JOIN', channels, keys);
-					} else if (channels.length !== 0) {
-						client.send('JOIN', channels);
+					if (args) {
+						match = args.replace(/,\s/g,',').match(/([^\s]+)(?: ([^\s]+))?/).slice(1);
+						channels = [];
+						chanlist = match[0].split(',');
+						console.log(chanlist);
+						for (var i = 0; i < chanlist.length; i++) {
+							if(chanlist[i].match(/([#&+!].*)/))
+								channels.push(chanlist[i]);
+							}
+						if (match[1]) {
+							keys = match[1];
+							client.send('JOIN', channels, keys);
+						} else if (channels.length !== 0) {
+							client.send('JOIN', channels);
+						}
+					} else {
+						socket.emit('error', {"reply": 'err_needmoreparams', "display": 'Error: Need more parameters'});
 					}
 					break;
 				case 'ME':
@@ -168,11 +137,18 @@ io.sockets.on('connection', function (socket) {
 				case 'MODE':
 					break;
 				case 'MSG':
+				case 'PRIVMSG': //same command
 					if (args) {
 						console.log(args);
-						match = args.match(/^([^ ]+) (.*)/);
-						if (match)
-							client.say(match[1],match[2]);
+						match = args.match(/^([^ ]+)(?: (.*))?/);
+						if (match) {
+							if (match[2])
+								client.say(match[1],match[2]);
+							else
+								socket.emit('error', {"reply": 'err_notexttosend', "display": 'Error: No text to send'});
+						}
+					} else {
+						socket.emit('error', {"reply": 'err_norecipient', "display": 'Error: No recipient'});
 					}
 					break;
 				case 'NICK':
@@ -195,11 +171,28 @@ io.sockets.on('connection', function (socket) {
 					if (channels.length !== 0)
 						client.send('PART', channels);
 					break;
+				case 'SAY':
+					client.say(data.to,args);
+					break;	
 				case 'QUIT':
 					console.log(args);
 					client.disconnect(args);
 					break;
+				case 'TOPIC':
+					args = (args) ? args.match(/([^\s]*)(?:\s+)?(.*)/).slice(1) : "";
+					if (args[0] in client.chans) {
+						if (args[1] && args[1] !== ":") args[1] = ":" + args[1];
+						client.send('TOPIC', args[0], args[1]);
+					} else {
+						if (args[0] && args[0] !== ":") args[0] = ":" + args[0];
+						args = (args[1]) ? args[0]+' '+args[1] : args[0];
+						client.send('TOPIC', data.to, args);	
+					}
+					break;
 				case 'VOICE':
+					break;
+				default:
+					client.send(command, args);
 					break;
 			}
 		}

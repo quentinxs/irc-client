@@ -226,7 +226,8 @@ $(document).ready(function() {
 			case 'topic':
 				data.topic = data.topic.replace(/((https?:\/\/)([-\w]+\.[-\w\.]+)+\w(:\d+)?(\/([-\w/_\.]*(\?\S+)?)?)*)/g, "<a href=\"$1\" target=\"_blank\">$1</a>");
 				if ($('#topic span[data-room="'+data.channel+'"]').length) {
-					message = 'Topic changed to "'+data.topic+'" by <span class="ircSender">'+data.nick+'</span>';
+					if (data.nick)
+						message = 'Topic changed to "'+data.topic+'" by <span class="ircSender">'+data.nick+'</span>';
 					$('#topic span[data-room="'+data.channel+'"]').html(data.topic);
 				} else {
 					var dispTopic = (data.channel === irc.room) ? ' style="display: inline;"' : '';
@@ -262,6 +263,10 @@ $(document).ready(function() {
 				if (historyIndex[irc.room] === -1) $(this).val(currentEntry[irc.room]);
 			}
 		}
+	});
+
+	socket.on('error', function (data) {
+		alert(data.display);
 	});
 });
 $(window).unload(function(){
