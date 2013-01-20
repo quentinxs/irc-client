@@ -4,11 +4,15 @@ img {border:0}
 header, footer, article, section, nav, menu, hgroup, figure {display: block;}
 
 /* STYLE */
-body {
+html,body {
 	background-color: black;
     color: white;
     font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;
     font-size: 12px;
+	margin: 0;
+	height: 100%;
+	overflow-y: scroll;
+	-webkit-overflow-scrolling: none;
 }
 
 h1 {font-size: 28px;}
@@ -30,6 +34,8 @@ a:hover { text-decoration: underline; }
 a:active { color: #FF0000; }
 
 #container {
+	box-sizing: border-box;
+	height: 100%;
 	margin: 0px auto;
 	overflow: hidden;
 	padding-top: 30px;
@@ -39,7 +45,9 @@ a:active { color: #FF0000; }
 #client {
 	background-color: lightGrey;
 	color: black;
-	min-height: 400px;
+	height: -webkit-calc(100% - 75px);
+	height: calc(100% - 75px);
+ 	min-height: 64px;
 	position: relative;
 	width: 100%;
 }
@@ -47,10 +55,8 @@ a:active { color: #FF0000; }
 #cur_room {
 	background-color: white;
 	float: left;
-	min-height: 390px;
+	height: 100%;
 	overflow: hidden;
-	padding: 0 0 8px 0;
-	position: relative;
 	width: 748px;
 }
 
@@ -75,10 +81,12 @@ a:active { color: #FF0000; }
 
 #channelLog {
 	font: 11px/16px "Lucida Grande", Verdana, Helvetica, Arial, sans-serif;
-	height: 376px;
+	height: -webkit-calc(100% - 54px);
+	height: calc(100% - 54px);
 	margin: 1px 0;
 	overflow-x: hidden;
 	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
 	width: 100%;
 }
 #channelLog dl { display:block; }
@@ -113,9 +121,10 @@ dt.h { background: #E6E6E6; }
 #room_list {
 	float: left;
 	font-size: 13px;
-	height: 433px;
+ 	height: 100%;
 	overflow-x: hidden;
 	overflow-y: scroll;
+	-webkit-overflow-scrolling: touch;
 	padding: 0 0 0 1px;
 	width: 211px;
 }

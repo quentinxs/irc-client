@@ -5,16 +5,6 @@
 	<title>IRC Client</title>
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
-	<style media="only screen and (max-device-width: 480px)">
-		body { width: 480px; font-size: 11px; -webkit-text-size-adjust: none;}
-		#container, #cur_room { margin: 0; width: 100%; }
-		#room_list { display: none; }
-		#client { min-height: 0; max-height: 320px; }
-		#cur_room {width: 100%; padding: 0; min-height: 0;}
-		#topic { height: 16px; line-height: 16px; }
-		#channelLog { height: 260px; }
-		#ircInput input { padding:0 4px; }
-	</style>
 	<link href="/client.css" rel="stylesheet" type="text/css" />
 	<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>
 	<script src="/socket.io/socket.io.js"></script>
@@ -54,8 +44,53 @@ function changeRoom(room) {
 	setLabelWidth(room);
 	$('#cur_room [data-room]').hide();
 	$('#cur_room [data-room="'+room+'"]').show();
-	$('#channelLog').scrollTop(999999);
+	$('#channelLog').scrollTop($('#channelLog').prop("scrollHeight"));
 	$("#ircInput input").focus();
+	if (!irc.room) {
+		irc.room = 'irc.server';
+		inputHistory[irc.room] = [];
+	}
+}
+
+function listUsers(room) {
+	var non = irc.users[room].non,
+		ops = irc.users[room].ops,
+		hops = irc.users[room].hops,
+		voice = irc.users[room].voice;
+	
+	ops.sort(sortNicks);
+	hops.sort(sortNicks);
+	voice.sort(sortNicks);
+	non.sort(sortNicks);
+	var user = ops.concat(hops,voice,non);
+	$('#room_list ul[data-room="'+room+'"]').html('');
+	for (var i = 0; i < user.length; i++) {
+		umode = '';
+		if (ops.indexOf(user[i]) != -1) umode = ' class="op"';
+		if (hops.indexOf(user[i]) != -1) umode = ' class="halfop"';
+		if (voice.indexOf(user[i]) != -1) umode = ' class="voice"';
+		$('#room_list ul[data-room="'+room+'"]').append('<li'+umode+'>'+user[i]+'</li>');
+		user[i] = user[i].replace(/([\[\]\^\\\|])/g, "\\$1");
+	}
+	irc.users[room].reg = user;
+	irc.users[room].reg.reverse();
+	irc.users[room].reg = irc.users[room].reg.join('|');
+}
+
+function removeUser(room,user) {
+	var n = irc.users[room].non.indexOf(user),
+		o = irc.users[room].ops.indexOf(user),
+		h = irc.users[room].hops.indexOf(user),
+		v = irc.users[room].voice.indexOf(user),
+		ah = irc.users[room].alt.hops.indexOf(user),
+		av = irc.users[room].alt.voice.indexOf(user);
+	if (n != -1) irc.users[room].non.splice(n, 1);
+	if (o != -1) irc.users[room].ops.splice(o, 1);
+	if (h != -1) irc.users[room].hops.splice(h, 1);
+	if (v != -1) irc.users[room].voice.splice(v, 1);
+	if (ah != -1) irc.users[room].alt.hops.splice(ah, 1);
+	if (av != -1) irc.users[room].alt.voice.splice(av, 1);
+	listUsers(room);
 }
 
 function setLabelWidth(room) {
@@ -66,6 +101,7 @@ function setLabelWidth(room) {
 
 function parseMessage(msg, users) {
 	msgRe = new RegExp('(^|[^A-Za-z0-9\\[\\]\\\\`\\^{\\|}])('+users+')(?!A-Za-z0-9\\[\\]\\\\`\\^{\\|}-)','g');
+	console.log(msgRe);
 	msg = msg.replace(msgRe, "$1<span class=\"ircNick\">$2</span>");
 	msg = msg.replace(/((https?:\/\/)([-\w]+\.[-\w\.]+)+\w(:\d+)?(\/([-\w/_\.]*(\?\S+)?)?)*)/g, "<a href=\"$1\" target=\"_blank\">$1</a>");
 	msg = msg.replace(/\u0002(.*)\u000f/g, "<b>$1</b>");
@@ -78,7 +114,7 @@ function parseMessage(msg, users) {
 
 $(document).ready(function() {
 	$("#ircInput input").focus();
-	var socket = io.connect('http://localhost:8081');
+	var socket = io.connect();
 	socket.on('connect', function () {
 		socket.emit('credentials', {nick: irc.nick});
 	});
@@ -86,41 +122,100 @@ $(document).ready(function() {
 		irc.nick = nick;
 	});
 	socket.on('userlist', function (data) {
-		var reg = [],
-			ops = [],
-			hops = [],
-			voice = [];
+		irc.users[data.channel] = {
+			'non': [],
+			'ops': [],
+			'hops': [],
+			'voice': [],
+			'alt': {'hops': [], 'voice': []},
+			'reg': []
+			};
 		for (var key in data.nicks) {
 			if (data.nicks[key] === '@') {
-				ops.push(key);
+				irc.users[data.channel].ops.push(key);
 			} else if (data.nicks[key] === '%') {
-				hops.push(key);
+				irc.users[data.channel].hops.push(key);
 			} else if (data.nicks[key] === '+') {
-				voice.push(key);
+				irc.users[data.channel].voice.push(key);
 			} else {
-				reg.push(key);
+				irc.users[data.channel].non.push(key);
 			}
 		}
-		ops.sort(sortNicks);
-		hops.sort(sortNicks);
-		voice.sort(sortNicks);
-		reg.sort(sortNicks);
-		var user = ops.concat(voice,reg);
-		$('#room_list ul[data-room="'+data.channel+'"]').html('');
-		for (var i = 0; i < user.length; i++) {
-			umode = '';
-			if (ops.indexOf(user[i]) != -1) umode = ' class="op"';
-			if (hops.indexOf(user[i]) != -1) umode = ' class="halfop"';
-			if (voice.indexOf(user[i]) != -1) umode = ' class="voice"';
-			$('#room_list ul[data-room="'+data.channel+'"]').append('<li'+umode+'>'+user[i]+'</li>');
-			user[i] = user[i].replace('|','\\|')
+		listUsers(data.channel);
+	});
+	socket.on('+mode', function (data) {
+		if (['o','h','v'].indexOf(data.mode) != -1) {
+			var o = irc.users[data.channel].ops.indexOf(data.arg),
+				h = irc.users[data.channel].hops.indexOf(data.arg),
+				v = irc.users[data.channel].voice.indexOf(data.arg),
+				n = irc.users[data.channel].non.indexOf(data.arg);
+			switch (data.mode) {
+				case 'o':
+					if (o == -1) irc.users[data.channel].ops.push(data.arg);
+				case 'h':
+					if (h == -1 && data.mode == 'h') {
+						if (o != -1)
+							irc.users[data.channel].alt.hops.push(data.arg);
+						else
+							irc.users[data.channel].hops.push(data.arg);
+					} else if (h != -1 && data.mode != 'h') {
+						irc.users[data.channel].hops.splice(h, 1);
+						irc.users[data.channel].alt.hops.push(data.arg);
+					}
+				case 'v':
+					if (v == -1 && data.mode == 'v') {
+						if (o != -1 || h != -1)
+							irc.users[data.channel].alt.voice.push(data.arg);
+						else
+							irc.users[data.channel].voice.push(data.arg);
+					} else if (v != -1 && data.mode != 'v') {
+						irc.users[data.channel].voice.splice(v, 1);
+						irc.users[data.channel].alt.voice.push(data.arg);
+					}
+					break;
+			}
+			if (n != -1) irc.users[data.channel].non.splice(n, 1);
+			listUsers(data.channel);
 		}
-		irc.users[data.channel] = user;
-		irc.users[data.channel].reverse();
-		irc.users[data.channel] = irc.users[data.channel].join('|');
+	});
+	socket.on('-mode', function (data) {
+		if (['o','h','v'].indexOf(data.mode) != -1) {
+			switch (data.mode) {
+				case 'o':
+					i = irc.users[data.channel].ops.indexOf(data.arg);
+					if (i != -1) irc.users[data.channel].ops.splice(i, 1);
+					break;
+				case 'h':
+					i = irc.users[data.channel].hops.indexOf(data.arg);
+					a = irc.users[data.channel].alt.hops.indexOf(data.arg);
+					if (i != -1) irc.users[data.channel].hops.splice(i, 1);
+					if (a != -1) irc.users[data.channel].alt.hops.splice(i, 1);
+					break;
+				case 'v':
+					i = irc.users[data.channel].voice.indexOf(data.arg);
+					a = irc.users[data.channel].alt.voice.indexOf(data.arg);
+					if (i != -1) irc.users[data.channel].voice.splice(i, 1);
+					if (a != -1) irc.users[data.channel].alt.voice.splice(i, 1);
+					break;
+			}
+			if (i != -1) {
+				h = irc.users[data.channel].alt.hops.indexOf(data.arg);
+				v = irc.users[data.channel].alt.voice.indexOf(data.arg);
+				if (h != -1) {
+					irc.users[data.channel].alt.hops.splice(h, 1);
+					irc.users[data.channel].hops.push(data.arg);
+				} else if (v != -1) {
+					irc.users[data.channel].alt.voice.splice(v, 1);
+					irc.users[data.channel].voice.push(data.arg);
+				} else
+					irc.users[data.channel].non.push(data.arg);
+				listUsers(data.channel);
+			}
+		}
 	});
 
 	socket.on('message', function (data) {
+		console.log(data.from+' :: '+data.msg);
 		var time = getTime();
 		var userClass = '';
 		if (data.from === irc.nick)
@@ -138,14 +233,14 @@ $(document).ready(function() {
 				inputHistory[room] = [];
 				historyIndex[room] = -1;
 				currentEntry[room] = '';
-				irc.users[room] = data.from.replace('|','\\|')+'|'+data.to.replace('|','\\|');
+				irc.users[room].reg = data.from.replace(/([\[\]\^\\\|])/g, "\\$1")+'|'+data.to.replace(/([\[\]\^\\\|])/g, "\\$1");
 				if (data.from === irc.nick)
 					changeRoom(room);
 			}
 			
 		}
 		var hl = '';
-		data.msg = parseMessage(data.msg, irc.users[room]);
+		data.msg = parseMessage(data.msg, irc.users[room].reg);
 		if (data.msg.match('<span class="ircNick">'+irc.nick+'</span>') && data.from !== irc.nick) {
 //			data.msg = data.msg.replace('<span class="ircNick">'+irc.nick+'</span>','<span class="ircSelf">'+irc.nick+'</span>');
 			hl = ' h';
@@ -154,7 +249,7 @@ $(document).ready(function() {
 			$('#channelLog dl[data-room="'+room+'"]').append('<dt class="ircAction'+hl+'"><span class="ircTime">'+time+'</span><span class="ircSender'+userClass+'">'+data.from+'</span> '+data.msg+'</dt>');
 		else
 			$('#channelLog dl[data-room="'+room+'"]').append('<dt class="ircLine'+hl+'"><span class="ircTime">'+time+'</span><span class="ircSender'+userClass+'">'+data.from+'</span> '+data.msg+'</dt>');
-		$('#channelLog').scrollTop(999999);
+		$('#channelLog').scrollTop($('#channelLog').prop("scrollHeight"));
 
 		if (room !== irc.room) {
 			if ($('section[data-room="'+room+'"] > header > div > span > .unread').length == 0)
@@ -172,7 +267,7 @@ $(document).ready(function() {
 			target = (data.to.match(/^([#&+!])/)) ? data.to : irc.room;
 			data.msg = parseMessage(data.msg, '\\u000');
 		$('#channelLog dl[data-room="'+target+'"]').append('<dt class="ircNotice'+hl+'"><span class="ircTime">'+time+'</span><span class="ircSender'+userClass+'">'+data.from+'</span> '+data.msg+'</dt>');
-		$('#channelLog').scrollTop(999999);
+		$('#channelLog').scrollTop($('#channelLog').prop("scrollHeight"));
 	});
 
 	socket.on('event', function (data) {
@@ -196,11 +291,15 @@ $(document).ready(function() {
 					changeRoom(data.channel);
 				} else {
 					message = '<span class="ircSender">'+data.who+'</span> has joined '+data.channel;
+					irc.users[data.channel].non.push(data.who);
+					listUsers(data.channel);
 				}
 				break;
 			case 'kick':
 				if (data.reason.length == 0) data.reason = data.by;
 				message = data.who+' was kicked from '+data.channel+' by <span class="ircSender">'+data.by+'</span>. ('+data.reason+')';
+				
+				removeUser(data.channel, data.who);
 				break;
 			case 'nick':
 				oldnick = data.oldnick+' is';
@@ -213,14 +312,17 @@ $(document).ready(function() {
 				}
 				break;
 			case 'part':
-				if (irc.nick === data.who)
+				if (irc.nick === data.who) {
 					message = 'You left '+data.channel;
-				else
+				} else {
 					message = '<span class="ircSender">'+data.who+'</span> has left '+data.channel;
+					removeUser(data.channel, data.who);
+				}
 				break;
 			case 'quit':
 				for (i = 0; i < data.channels.length; i++) {
 					$('#channelLog dl[data-room="'+data.channels[i]+'"]').append('<dt class="ircEvent"><span class="ircTime">'+time+'</span>'+data.who+' has quit. ('+data.reason+')</dt>');
+					removeUser(data.channels[i], data.who);
 				}
 				break;
 			case 'topic':
@@ -236,14 +338,28 @@ $(document).ready(function() {
 				break;
 		}
 		if (message != '') $('#channelLog dl[data-room="'+data.channel+'"]').append('<dt class="ircEvent"><span class="ircTime">'+time+'</span>'+message+'</dt>');
-		$('#channelLog').scrollTop(999999);
+		$('#channelLog').scrollTop($('#channelLog').prop("scrollHeight"));
+	});
+
+	socket.on('closed', function (data) {
+		console.log('Removed room "'+data.removed+'" from display');
+		changeRoom(data.last);
 	});
 
 	$('#ircInput').submit(function(){
-		message = $('#ircInput input').val();
+		var message = $('#ircInput input').val();
 		inputHistory[irc.room].unshift(message);
 		historyIndex[irc.room] = -1;
-		socket.emit('data',{'to': irc.room, 'line': message});
+		if (message === '/close') {
+			$('[data-room="'+irc.room+'"]').remove();
+			delete historyIndex[irc.room];
+			delete inputHistory[irc.room];
+			delete currentEntry[irc.room];
+			delete irc.users[irc.room];
+			socket.emit('close', irc.room);
+		} else {
+			socket.emit('data',{'to': irc.room, 'line': message});
+		}
 		$('#ircInput input').val('');
 	});
 	
@@ -268,6 +384,16 @@ $(document).ready(function() {
 	socket.on('error', function (data) {
 		alert(data.display);
 	});
+	
+	if( /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent) ) {
+		$('input').bind('focus blur',function() {
+			setTimeout(function() {
+				var height = $(window).height() - $(window).scrollTop();
+				$('html,body').height(height+'px');
+				$('html,body').scrollTop(0);
+			}, 0)
+		});
+	}
 });
 $(window).unload(function(){
 	socket.emit('disconnect',{'msg': 'Leaving'});
