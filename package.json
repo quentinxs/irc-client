@@ -1,0 +1,24 @@
+{
+  "name": "irc-client",
+  "version": "1.0.0",
+  "description": "IRC Client web application",
+  "main": "irc-client.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/quentinxs/irc-client.git"
+  },
+  "author": "Quentin Sheets",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/quentinxs/irc-client/issues"
+  },
+  "homepage": "https://github.com/quentinxs/irc-client#readme",
+  "dependencies": {
+    "express": "^4.17.1",
+    "irc": "^0.5.2",
+    "socket.io": "^3.1.0"
+  }
+}

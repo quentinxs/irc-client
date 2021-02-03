@@ -4,22 +4,18 @@ var express = require('express'),
 	app = express(), 
 	http = require('http'), 
 	server = http.createServer(app), 
-	io = require('socket.io').listen(server), 
+	io = require('socket.io')(server),
 	irc = require('irc');
 
 server.listen(8081);
 
 var util = require('util');
-io.enable('browser client minification');
-io.enable('browser client etag');
-io.enable('browser client gzip');
-io.set('log level', 1)
 
 app.get('/', function (req, res) {
-	res.sendfile(__dirname + '/client.html');
+	res.sendFile(__dirname + '/client.html');
 });
 app.get('/client.css', function (req, res) {
-	res.sendfile(__dirname + '/client.css');
+	res.sendFile(__dirname + '/client.css');
 });
 
 app.use("/images", express.static(__dirname + '/images'));
